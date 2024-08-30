@@ -21,7 +21,7 @@ Future<void> main() async {
 class TakePictureScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
 
-  const TakePictureScreen({Key? key, required this.cameras}) : super(key: key);
+  const TakePictureScreen({super.key, required this.cameras});
 
   @override
   _TakePictureScreenState createState() => _TakePictureScreenState();
@@ -154,7 +154,7 @@ class _TakePictureScreenState extends State<TakePictureScreen> {
                     child: Center(
                       child: Text(
                         'Recording Time: ${_recordingTime}s',
-                        style: TextStyle(color: Colors.red, fontSize: 18),
+                        style: const TextStyle(color: Colors.red, fontSize: 18),
                       ),
                     ),
                   ),
@@ -200,7 +200,7 @@ class _TakePictureScreenState extends State<TakePictureScreen> {
 class DisplayPictureScreen extends StatelessWidget {
   final String imagePath;
 
-  const DisplayPictureScreen({Key? key, required this.imagePath}) : super(key: key);
+  const DisplayPictureScreen({super.key, required this.imagePath});
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +210,7 @@ class DisplayPictureScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Image.file(File(imagePath)),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Center(
             child: Text('Saved to: $imagePath'),
           ),

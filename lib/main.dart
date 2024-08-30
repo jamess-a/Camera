@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
 import 'package:gallery_saver/gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:vibration/vibration.dart';
 import 'dart:io';
 import 'dart:async';
 
@@ -71,6 +74,9 @@ class _MyHomePageState extends State<MyHomePage> {
     if (controller == null || !controller!.value.isRecordingVideo) return;
 
     try {
+      final player = AudioPlayer();
+      await player.play(AssetSource('beep.mp3'));
+
       final video = await controller!.stopVideoRecording();
       setState(() {
         isRecording = false;
@@ -84,6 +90,7 @@ class _MyHomePageState extends State<MyHomePage> {
       GallerySaver.saveVideo(videoPath).then((bool? success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+              backgroundColor: const Color.fromARGB(0, 0, 0, 0),
               content:
                   Text(success! ? 'Video saved!' : 'Failed to save video.')),
         );
@@ -93,26 +100,65 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void startRecordingTimer() {
-    recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        recordingTime++;
+  void startRecordingTimer() async {
+    try {
+      final player = AudioPlayer();
+      await player.play(AssetSource('beep.mp3'));
+
+      recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          recordingTime++;
+        });
       });
-    });
+    } catch (e) {
+      print('Error starting recording timer: $e');
+    }
   }
 
   Future<void> takePicture() async {
     if (controller != null && controller!.value.isInitialized) {
       try {
+        final player = AudioPlayer();
+        await player.play(AssetSource('camera-shutter-photo.mp3'));
+
+        if (await Vibration.hasVibrator() ?? false) {
+          print('Vibrating');
+          Vibration.vibrate(duration: 100); 
+        }
+
+        setState(() {
+          _showFlash = true;
+        });
+
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        setState(() {
+          _showFlash = false;
+        });
+
+        // Take the picture
         final file = await controller!.takePicture();
         final bool? success = await GallerySaver.saveImage(file.path);
+
         if (success == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Picture saved to ${file.path}')),
+            SnackBar(
+              backgroundColor: const Color.fromARGB(0, 0, 0, 0),
+              content: Text(
+                style: const TextStyle(color: Colors.white),
+                'Picture saved to ${file.path}',
+              ),
+            ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to save picture')),
+            const SnackBar(
+              backgroundColor: Color.fromARGB(0, 0, 0, 0),
+              content: Text(
+                style: TextStyle(color: Colors.white),
+                'Failed to save picture',
+              ),
+            ),
           );
         }
       } catch (e) {
@@ -123,7 +169,18 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void switchCamera() {
+  void switchCamera() async {
+    try {
+      final player = AudioPlayer();
+      await player.play(AssetSource('dslr-shutter-st.mp3'));
+
+      await Future.delayed(const Duration(milliseconds: 100));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+
     setState(() {
       final newIndex = cameras.indexOf(currentCamera!) == 0 ? 1 : 0;
       currentCamera = cameras[newIndex];
@@ -133,6 +190,8 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     });
   }
+
+  bool _showFlash = false;
 
   @override
   Widget build(BuildContext context) {
@@ -153,9 +212,14 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Center(
                       child: Text(
                         'Recording Time: ${recordingTime}s',
-                        style: TextStyle(color: Colors.red, fontSize: 18),
+                        style: const TextStyle(color: Colors.red, fontSize: 18),
                       ),
                     ),
+                  ),
+                // Flash effect overlay
+                if (_showFlash)
+                  Container(
+                    color: Colors.white.withOpacity(0.7),
                   ),
               ],
             ),
@@ -172,8 +236,10 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: isRecording ? stopVideoRecording : startVideoRecording,
             tooltip: isRecording ? 'Stop Recording' : 'Record Video',
             child: Icon(
-              isRecording ? Icons.stop : Icons.videocam,
-              color: isRecording ? Colors.red : Colors.blue,
+              isRecording ? Icons.stop : Icons.fiber_manual_record,
+              color: isRecording
+                  ? Colors.red
+                  : const Color.fromARGB(255, 255, 255, 255),
             ),
           ),
           const SizedBox(width: 20),
